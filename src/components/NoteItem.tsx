@@ -1,7 +1,8 @@
 // REFERENCE SOLUTION - Do not distribute to students
 // src/components/NoteItem.tsx
-import React from 'react';
+import React, { useState } from 'react';
 
+import { deleteNote } from '../services/noteService';
 import { Note } from '../types/Note';
 
 interface NoteItemProps {
@@ -9,11 +10,30 @@ interface NoteItemProps {
   onEdit?: (note: Note) => void;
 }
 // TODO: delete eslint-disable-next-line when you implement the onEdit handler
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const NoteItem: React.FC<NoteItemProps> = ({ note, onEdit }) => {
   // TODO: manage state for deleting status and error message
   // TODO: create a function to handle the delete action, which will display a confirmation (window.confirm) and call the deleteNote function from noteService,
   // and update the deleting status and error message accordingly
+  const [deleting, setDeleting] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleEdit = () => {
+    onEdit?.(note);
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm('Confirm')) return;
+
+    setDeleting(true);
+    setError(null);
+
+    try {
+      await deleteNote(note.id);
+    } catch (err) {
+      setError((err as Error).message);
+      setDeleting(false);
+    }
+  };
 
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp);
@@ -70,8 +90,15 @@ const NoteItem: React.FC<NoteItemProps> = ({ note, onEdit }) => {
       <div className="note-header">
         <h3>{note.title}</h3>
         <div className="note-actions">
-          <button className="edit-button">Edit</button>
-          <button className="delete-button">{'Delete'}</button>
+          {onEdit && (
+            <button className="edit-button" onClick={handleEdit} disabled={deleting}>
+              Edit
+            </button>
+          )}
+
+          <button className="delete-button" onClick={handleDelete} disabled={deleting}>
+            {deleting ? 'Deleting...' : 'Delete'}
+          </button>
         </div>
       </div>
       <div className="note-content">{note.content}</div>
@@ -80,6 +107,7 @@ const NoteItem: React.FC<NoteItemProps> = ({ note, onEdit }) => {
           Last updated: {getTimeAgo(note.lastUpdated)}
         </span>
       </div>
+      {error && <p style={{ color: 'red' }}>{error}</p>}
     </div>
   );
 };
